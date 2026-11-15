@@ -25,7 +25,7 @@ jobs:
     outputs:
       ready: ${{ steps.data.outputs.ready }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - name: Fetch the latest data
         id: data
         run: |
