@@ -1,0 +1,33 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Gempa Harian · Indonesia earthquakes, updated daily</title>
+    <meta
+      name="description"
+      content="Earthquakes in Indonesia from USGS and BMKG, refreshed every day by an open pipeline. Daily seismograph view, map, and the data checks behind it."
+    />
+    <meta name="color-scheme" content="light dark" />
+    <link rel="icon" href="./favicon.svg" type="image/svg+xml" />
+    <script>
+      (function () {
+        var theme = null;
+        try {
+          theme = localStorage.getItem('gh-theme');
+        } catch (error) {
+          /* storage blocked */
+        }
+        if (theme !== 'light' && theme !== 'dark') {
+          theme = matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+        }
+        document.documentElement.dataset.theme = theme;
+      })();
+    </script>
+  </head>
+  <body>
+    <div id="app"></div>
+    <noscript><p style="padding: 1rem">This page needs JavaScript to draw the charts.</p></noscript>
+    <script type="module" src="./src/main.ts"></script>
+  </body>
+</html>
