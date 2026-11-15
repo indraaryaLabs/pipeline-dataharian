@@ -1,0 +1,30 @@
+name: Build dashboard
+description: Builds the static dashboard with a data file next to it and uploads it as the Pages artifact.
+
+inputs:
+  data-file:
+    description: Path to the data.json that the page should read.
+    required: true
+
+runs:
+  using: composite
+  steps:
+    - uses: actions/setup-node@v4
+      with:
+        node-version: 24
+        cache: npm
+        cache-dependency-path: dashboard/package-lock.json
+    - name: Build
+      shell: bash
+      working-directory: dashboard
+      run: |
+        npm ci
+        npm run build
+    - name: Add data
+      shell: bash
+      env:
+        DATA_FILE: ${{ inputs.data-file }}
+      run: cp "$DATA_FILE" dashboard/dist/data.json
+    - uses: actions/upload-pages-artifact@v3
+      with:
+        path: dashboard/dist

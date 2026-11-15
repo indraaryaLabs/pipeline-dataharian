@@ -1,0 +1,59 @@
+name: Pages
+
+# Redeploys the page when the dashboard code changes, using the data from the last pipeline run.
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'dashboard/**'
+      - '.github/actions/build-dashboard/**'
+      - '.github/workflows/pages.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    name: Build
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    outputs:
+      ready: ${{ steps.data.outputs.ready }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Fetch the latest data
+        id: data
+        run: |
+          if git ls-remote --exit-code --heads "https://github.com/${GITHUB_REPOSITORY}.git" data >/dev/null 2>&1; then
+            git fetch --depth=1 "https://github.com/${GITHUB_REPOSITORY}.git" data:refs/remotes/origin/data
+            git show origin/data:data.json > "$RUNNER_TEMP/data.json"
+            echo "ready=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "ready=false" >> "$GITHUB_OUTPUT"
+            echo "::notice::No data yet. Run the Pipeline workflow once; it publishes the page itself."
+          fi
+      - uses: ./.github/actions/build-dashboard
+        if: ${{ steps.data.outputs.ready == 'true' }}
+        with:
+          data-file: ${{ runner.temp }}/data.json
+
+  deploy:
+    name: Deploy
+    needs: build
+    if: ${{ needs.build.outputs.ready == 'true' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4
