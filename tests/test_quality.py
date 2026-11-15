@@ -101,12 +101,29 @@ def test_volume_is_not_judged_on_thin_history(
     assert by_name(quality.run_checks(store, settings, now))["daily_volume"].status == "skip"
 
 
-def test_a_double_counted_event_is_flagged(store: Store, settings: Settings, now: datetime) -> None:
+@pytest.mark.parametrize(
+    ("gap_s", "shift_deg", "expected"),
+    [
+        (0, 0.0, "warn"),  # the same event under two IDs
+        (4, 0.02, "warn"),  # a re-import with rounded values
+        (11, 0.09, "pass"),  # an aftershock pair seen in the first real run: 11 s, 10 km
+        (20, 0.0, "pass"),  # same place but 20 s apart is a different event
+        (0, 0.5, "pass"),  # same moment but 55 km apart is a different event
+    ],
+)
+def test_only_a_near_identical_pair_counts_as_one_event_twice(
+    store: Store, settings: Settings, now: datetime, gap_s: int, shift_deg: float, expected: str
+) -> None:
     when = now - timedelta(hours=5)
     store.upsert(
-        [make_quake(id="a", time=when), make_quake(id="b", time=when + timedelta(seconds=20))], now
+        [
+            make_quake(id="a", time=when),
+            make_quake(id="b", time=when + timedelta(seconds=gap_s), lat=-2.0 + shift_deg),
+        ],
+        now,
     )
-    assert by_name(quality.run_checks(store, settings, now))["no_double_counting"].status == "warn"
+    check = by_name(quality.run_checks(store, settings, now))["no_double_counting"]
+    assert check.status == expected
 
 
 def test_run_status_drives_the_last_run_check(

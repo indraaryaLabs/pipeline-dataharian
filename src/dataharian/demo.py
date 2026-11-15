@@ -215,6 +215,20 @@ def _bmkg_row(b: DemoBmkg) -> dict[str, str]:
     }
 
 
+class _Stopwatch:
+    """A deterministic stand-in for `time.monotonic`: every run appears to take 2 to 7 seconds."""
+
+    def __init__(self) -> None:
+        self._calls = 0
+        self._elapsed = 0.0
+
+    def __call__(self) -> float:
+        self._calls += 1
+        if self._calls % 2 == 0:  # the end of a run
+            self._elapsed += 2.0 + (self._calls * 7 % 50) / 10
+        return self._elapsed
+
+
 def build(
     scenario: Scenario,
     now: datetime,
@@ -228,6 +242,7 @@ def build(
     events, bmkg = synthesize(seed, now - timedelta(days=days + 1), now)
     upstream = Upstream(events, bmkg, settings)
     fetcher = upstream.fetcher()
+    stopwatch = _Stopwatch()
     run_hour = timedelta(hours=1, minutes=17)
     midnight = datetime(now.year, now.month, now.day, tzinfo=UTC)
 
@@ -235,7 +250,14 @@ def build(
         if scenario == "empty":
             upstream.now = now
             upstream.usgs_down = True
-            pipeline.run(store, settings, fetcher, now=midnight + run_hour, mode="backfill")
+            pipeline.run(
+                store,
+                settings,
+                fetcher,
+                now=midnight + run_hour,
+                mode="backfill",
+                monotonic=stopwatch,
+            )
             return settings
         history = 14 if scenario != "failed" else 16
         for back in range(history, -1, -1):
@@ -256,6 +278,7 @@ def build(
                 fetcher,
                 now=moment,
                 mode="backfill" if back == history else "incremental",
+                monotonic=stopwatch,
             )
         store.compact()
     return settings

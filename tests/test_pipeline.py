@@ -249,3 +249,13 @@ def test_the_report_carries_checks_and_a_failing_check_fails_the_exit_code(
     assert report.status == "ok"  # both sources answered; the catalogue is just empty
     assert any(c.name == "catalogue_present" and c.status == "fail" for c in report.checks)
     assert report.exit_code == 1
+
+
+def test_a_run_records_how_long_it_actually_took(
+    store: Store, settings: Settings, upstream: demo.Upstream
+) -> None:
+    ticks = iter([100.0, 107.0])  # start and finish of the run; times are stored to the second
+    run(store, settings, upstream, DAY0, monotonic=lambda: next(ticks))
+    finished = store.runs(1)[0]
+    assert finished.finished is not None
+    assert finished.finished - finished.started == timedelta(seconds=7)

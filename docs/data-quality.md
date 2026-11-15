@@ -9,10 +9,14 @@ Nine checks run after every load. Each returns `pass`, `warn`, `fail` or `skip` 
 | `inside_region`      | Every event inside the bounding box                 |                                                                                     | Any event outside it            |                                 |
 | `fresh_catalogue`    | Newest event is at most 72 hours old                | Older than 72 hours, up to 7 days                                                   | Older than 7 days, or no events |                                 |
 | `daily_volume`       | Yesterday is in line with the previous two weeks    | None yesterday when 3 or more are typical, or more than 12 and over 4 times typical |                                 | Fewer than 30 events of history |
-| `no_double_counting` | No two events within 60 seconds and 50 km           | Any such pair                                                                       |                                 |                                 |
+| `no_double_counting` | No two events within 5 seconds and 5 km           | Any such pair                                                                       |                                 |                                 |
 | `last_run`           | Last run read both sources                          | Last run was partial                                                                | Last run failed                 | No run recorded yet             |
 | `reject_rate`        | At most 2% of fetched rows rejected                 | Over 2%, up to 10%                                                                  | Over 10%                        | Nothing fetched                 |
 | `agency_agreement`   | At least 70% of eligible BMKG events found in USGS  | Below 70%                                                                           |                                 | Fewer than 5 events to compare  |
+
+### Why `no_double_counting` is so tight
+
+The first run against real data showed that 38 pairs of events fell within 60 seconds and 50 km of each other. They were aftershocks in swarms near the Molucca Sea and southern Mindanao: different USGS IDs, different magnitudes, a genuine sequence. A check that warns about real earthquakes on every run is noise. The check now looks only for the signature of a duplicate, the same moment and the same place under two IDs, which is what an ID scheme change or a re-import would produce. The closest real pair in a year of data was 11 seconds and 10 km apart.
 
 ## Row-level rejections
 

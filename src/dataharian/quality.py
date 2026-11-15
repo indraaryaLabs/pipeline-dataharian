@@ -16,6 +16,10 @@ from .store import Store
 
 Status = Literal["pass", "warn", "fail", "skip"]
 
+# Two events this close in time and place are the same event under two IDs.
+DUPLICATE_SECONDS = 5
+DUPLICATE_KM = 5
+
 
 @dataclass(frozen=True, slots=True)
 class Check:
@@ -103,18 +107,28 @@ def _daily_volume(usgs: list[Quake], now: datetime) -> Check:
 
 
 def _no_double_counting(usgs: list[Quake]) -> Check:
+    """Flag one event stored under two IDs: same moment, same place.
+
+    The first real run showed that wider limits (60 s, 50 km) flag aftershock swarms, where
+    distinct events follow each other within seconds. Those pairs are real, so only a pair
+    with practically identical time and position counts as a duplicate.
+    """
     close = 0
     for index, event in enumerate(usgs):
         for other in usgs[index + 1 :]:
-            if (other.time - event.time).total_seconds() > 60:
+            if (other.time - event.time).total_seconds() > DUPLICATE_SECONDS:
                 break
-            if distance_km(event.lat, event.lon, other.lat, other.lon) < 50:
+            if distance_km(event.lat, event.lon, other.lat, other.lon) < DUPLICATE_KM:
                 close += 1
     if close:
         return Check(
-            "no_double_counting", "warn", f"{close} pairs look like one event counted twice."
+            "no_double_counting", "warn", f"{close} pairs look like one event stored twice."
         )
-    return Check("no_double_counting", "pass", "No events within 60 s and 50 km of each other.")
+    return Check(
+        "no_double_counting",
+        "pass",
+        f"No events within {DUPLICATE_SECONDS} s and {DUPLICATE_KM} km of each other.",
+    )
 
 
 def _last_run(store: Store) -> Check:

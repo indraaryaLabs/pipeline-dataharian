@@ -3,6 +3,8 @@
 from __future__ import annotations
 
 import logging
+import time
+from collections.abc import Callable
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta
 from typing import Literal
@@ -59,7 +61,9 @@ def run(
     *,
     now: datetime,
     mode: Mode = "auto",
+    monotonic: Callable[[], float] = time.monotonic,
 ) -> RunReport:
+    """Run once. `now` is the logical start time; `monotonic` measures how long the run took."""
     resolved = resolve_mode(store, mode)
     updated_after: datetime | None = None
     if resolved == "incremental":
@@ -67,7 +71,12 @@ def run(
         assert previous is not None
         updated_after = previous.started - timedelta(hours=settings.overlap_hours)
 
+    started = monotonic()
     run_id = store.start_run(resolved, now)
+
+    def finished() -> datetime:
+        return now + timedelta(seconds=monotonic() - started)
+
     report = RunReport(run_id=run_id, mode=resolved, status="ok")
     rejects: list[Reject] = []
     problems: list[str] = []
@@ -82,7 +91,7 @@ def run(
         report.status = "failed"
         problems.append(f"USGS: {error}")
     except Exception as error:
-        store.finish_run(run_id, now=now, status="failed", error=f"unexpected: {error!r}")
+        store.finish_run(run_id, now=finished(), status="failed", error=f"unexpected: {error!r}")
         raise
 
     try:
@@ -104,7 +113,7 @@ def run(
     )
     store.finish_run(
         run_id,
-        now=now,
+        now=finished(),
         status=report.status,
         usgs_fetched=report.usgs_fetched,
         usgs=report.usgs,
