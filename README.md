@@ -18,7 +18,19 @@ A small data pipeline and a public dashboard for earthquakes in Indonesia. Every
 
 The dashboard is built around a seismograph drum: one row per day, one tick per earthquake, taller for stronger, coloured by depth. Next to it a map, the strongest events, daily activity, the magnitude-frequency relation with a b-value, the agreement between the two agencies and the health of the pipeline. English and Indonesian, light and dark.
 
-<!-- screenshots -->
+## Screenshots
+
+Taken from the live page with the real published data of 16 November 2026, not mock data.
+
+![The dashboard in light theme: the day-by-day drum, the map and the strongest earthquakes](docs/screenshots/dashboard-light.png)
+
+| Dark theme                                         | Phone                                                  |
+| -------------------------------------------------- | ------------------------------------------------------ |
+| ![Dark theme](docs/screenshots/dashboard-dark.png) | ![Phone layout](docs/screenshots/dashboard-mobile.png) |
+
+The page also shows how far the data can be trusted: the nine checks, the two sources and every recent run.
+
+![Data checks, sources and recent runs](docs/screenshots/pipeline-health.png)
 
 ## How it fits together
 
