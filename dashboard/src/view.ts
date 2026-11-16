@@ -1,3 +1,4 @@
+import { localizeDetail } from './check-detail.ts';
 import { activityChart, agreementChart, frequencyChart } from './charts.ts';
 import { fill, h, svg } from './dom.ts';
 import {
@@ -786,7 +787,7 @@ function pipelineSection(ctx: Context, doc: DataDocument): HTMLElement {
               icon(check.status),
               h('span', { class: 'check__name' }, t.pipeline.checkNames[check.name] ?? check.name),
               h('span', { class: 'check__status' }, t.pipeline.checkStatus[check.status]),
-              h('span', { class: 'check__detail' }, check.detail),
+              h('span', { class: 'check__detail' }, localizeDetail(check.detail, ctx.state.lang)),
             ),
           ),
         ),

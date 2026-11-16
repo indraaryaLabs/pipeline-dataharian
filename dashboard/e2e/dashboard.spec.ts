@@ -84,6 +84,7 @@ test.describe('normal day', () => {
     await page.getByRole('button', { name: 'ID', exact: true }).click();
     await expect(page.locator('html')).toHaveAttribute('lang', 'id');
     await expect(page.getByRole('heading', { level: 1 })).toHaveText(/gempa/i);
+    await expect(page.locator('.check__detail').first()).toContainText('kejadian USGS');
     await page.reload();
     await expect(page.locator('html')).toHaveAttribute('lang', 'id');
     await expect(page.getByRole('button', { name: 'ID', exact: true })).toHaveAttribute(
