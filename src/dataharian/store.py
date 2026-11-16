@@ -275,6 +275,13 @@ class Store:
             [(run_id, r.source, r.raw_id, r.reason, r.excerpt) for r in rejects],
         )
 
+    def reject_count(self, run_id: int, source: Source, reason: str) -> int:
+        row = self._db.execute(
+            "SELECT COUNT(*) AS n FROM rejects WHERE run_id = ? AND source = ? AND reason = ?",
+            (run_id, source, reason),
+        ).fetchone()
+        return int(row["n"])
+
     def reject_reasons(self, last_runs: int = 30) -> list[tuple[str, str, int]]:
         rows = self._db.execute(
             "SELECT source, reason, COUNT(*) AS n FROM rejects WHERE run_id IN "

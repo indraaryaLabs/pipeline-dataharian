@@ -11,12 +11,16 @@ Nine checks run after every load. Each returns `pass`, `warn`, `fail` or `skip` 
 | `daily_volume`       | Yesterday is in line with the previous two weeks    | None yesterday when 3 or more are typical, or more than 12 and over 4 times typical |                                 | Fewer than 30 events of history |
 | `no_double_counting` | No two events within 5 seconds and 5 km           | Any such pair                                                                       |                                 |                                 |
 | `last_run`           | Last run read both sources                          | Last run was partial                                                                | Last run failed                 | No run recorded yet             |
-| `reject_rate`        | At most 2% of fetched rows rejected                 | Over 2%, up to 10%                                                                  | Over 10%                        | Nothing fetched                 |
+| `reject_rate`        | At most 2% of fetched rows rejected, not counting BMKG rows outside the region                 | Over 2%, up to 10%                                                                  | Over 10%                        | Nothing fetched                 |
 | `agency_agreement`   | At least 70% of eligible BMKG events found in USGS  | Below 70%                                                                           |                                 | Fewer than 5 events to compare  |
 
 ### Why `no_double_counting` is so tight
 
 The first run against real data showed that 38 pairs of events fell within 60 seconds and 50 km of each other. They were aftershocks in swarms near the Molucca Sea and southern Mindanao: different USGS IDs, different magnitudes, a genuine sequence. A check that warns about real earthquakes on every run is noise. The check now looks only for the signature of a duplicate, the same moment and the same place under two IDs, which is what an ID scheme change or a re-import would produce. The closest real pair in a year of data was 11 seconds and 10 km apart.
+
+### Why BMKG rows outside the region are not counted
+
+BMKG lists earthquakes for the whole country and its surroundings, so a recent list routinely contains one or two events outside the region box. The pipeline rejects them, records them and shows them on the page, but they are scope filtering rather than a data defect. Counting them made a quiet incremental run (four USGS rows and fifteen BMKG rows) warn every day. USGS rows outside the region are still counted: that query is boxed, so one would mean something is wrong upstream.
 
 ## Row-level rejections
 

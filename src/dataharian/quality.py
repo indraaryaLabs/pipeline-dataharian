@@ -149,8 +149,14 @@ def _reject_rate(store: Store) -> Check:
         return Check("reject_rate", "skip", "Nothing fetched in the last run.")
     run = runs[0]
     fetched = run.usgs_fetched + run.bmkg_fetched
-    share = run.rejected / fetched
-    detail = f"{run.rejected} of {fetched:,} rows rejected in the last run."
+    # BMKG lists the whole country, so trimming it to the region is expected filtering, not a
+    # defect. Counting it made a quiet incremental run (a handful of rows) warn every day.
+    filtered = store.reject_count(run.id, "bmkg", "outside_region")
+    rejected = run.rejected - filtered
+    detail = f"{rejected} of {fetched:,} rows rejected in the last run."
+    if filtered:
+        detail += f" {filtered} BMKG outside the region left out, as expected."
+    share = rejected / fetched
     if share <= 0.02:
         return Check("reject_rate", "pass", detail)
     return Check("reject_rate", "warn" if share <= 0.10 else "fail", detail)

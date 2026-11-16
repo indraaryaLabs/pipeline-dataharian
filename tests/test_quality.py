@@ -6,7 +6,7 @@ import pytest
 
 from dataharian import quality, reconcile
 from dataharian.config import Settings
-from dataharian.models import Quake
+from dataharian.models import Quake, Reject, Source
 from dataharian.store import Store, UpsertResult
 
 from .conftest import make_quake
@@ -148,6 +148,26 @@ def test_reject_rate_thresholds(
         run, now=now, status="ok", usgs_fetched=100, rejected=rejected, usgs=UpsertResult()
     )
     assert by_name(quality.run_checks(store, settings, now))["reject_rate"].status == status
+
+
+@pytest.mark.parametrize(
+    ("source", "reason", "status"),
+    [
+        ("bmkg", "outside_region", "pass"),  # BMKG lists the whole country: expected filtering
+        ("usgs", "outside_region", "warn"),  # the USGS query is boxed, so this is unexpected
+        ("bmkg", "bad_time", "warn"),
+    ],
+)
+def test_only_unexpected_rejects_count_against_the_rate(
+    store: Store, settings: Settings, now: datetime, source: Source, reason: str, status: str
+) -> None:
+    run = store.start_run("incremental", now)
+    store.add_rejects(run, [Reject(source, "x", reason, "excerpt")])
+    store.finish_run(run, now=now, status="ok", usgs_fetched=4, bmkg_fetched=15, rejected=1)
+    check = by_name(quality.run_checks(store, settings, now))["reject_rate"]
+    assert check.status == status
+    if source == "bmkg" and reason == "outside_region":
+        assert "left out, as expected" in check.detail
 
 
 def test_reject_rate_is_skipped_when_nothing_was_fetched(
